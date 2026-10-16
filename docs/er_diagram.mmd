@@ -1,0 +1,14 @@
+erDiagram
+  users ||--o| students : profile
+  users ||--o| teachers : profile
+  teachers ||--o{ courses : teaches
+  students ||--o{ enrollments : joins
+  courses ||--o{ enrollments : has
+  courses ||--o{ class_sessions : schedules
+  enrollments ||--o{ attendance : records
+  class_sessions ||--o{ attendance : contains
+  courses ||--o{ exams : defines
+  enrollments ||--o{ marks : earns
+  exams ||--o{ marks : grades
+  users ||--o{ pending : proposes
+  users ||--o{ audit : changes

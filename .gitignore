@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+backups/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.zip
+*.log
+.streamlit/secrets.toml
+docs/evidence/

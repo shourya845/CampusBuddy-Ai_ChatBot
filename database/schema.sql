@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,name TEXT NOT NULL,role TEXT CHECK(role IN ('teacher','student')) NOT NULL,salt TEXT NOT NULL,password_hash TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS students(student_id TEXT PRIMARY KEY REFERENCES users(id),roll_no INTEGER UNIQUE NOT NULL,name TEXT NOT NULL,department TEXT NOT NULL,semester INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS teachers(teacher_id TEXT PRIMARY KEY REFERENCES users(id),name TEXT NOT NULL,email TEXT UNIQUE NOT NULL);
+CREATE TABLE IF NOT EXISTS courses(course_id TEXT PRIMARY KEY,course_code TEXT UNIQUE NOT NULL,name TEXT NOT NULL,teacher_id TEXT REFERENCES teachers(teacher_id),total_planned_classes INTEGER NOT NULL CHECK(total_planned_classes>=0));
+CREATE TABLE IF NOT EXISTS enrollments(student_id TEXT REFERENCES students(student_id),course_id TEXT REFERENCES courses(course_id),PRIMARY KEY(student_id,course_id));
+CREATE TABLE IF NOT EXISTS class_sessions(course_id TEXT REFERENCES courses(course_id),class_date TEXT NOT NULL,PRIMARY KEY(course_id,class_date));
+CREATE TABLE IF NOT EXISTS attendance(student_id TEXT,course_id TEXT,class_date TEXT,status TEXT CHECK(status IN ('P','A')) NOT NULL,PRIMARY KEY(student_id,course_id,class_date),FOREIGN KEY(student_id,course_id) REFERENCES enrollments(student_id,course_id),FOREIGN KEY(course_id,class_date) REFERENCES class_sessions(course_id,class_date));
+CREATE TABLE IF NOT EXISTS exams(course_id TEXT REFERENCES courses(course_id),exam_type TEXT CHECK(exam_type IN ('QUIZ','MID','FINAL')),max_score REAL NOT NULL CHECK(max_score>0),PRIMARY KEY(course_id,exam_type));
+CREATE TABLE IF NOT EXISTS marks(student_id TEXT,course_id TEXT,exam_type TEXT,score REAL NOT NULL,max_score REAL NOT NULL CHECK(max_score>0),CHECK(score>=0 AND score<=max_score),PRIMARY KEY(student_id,course_id,exam_type),FOREIGN KEY(student_id,course_id) REFERENCES enrollments(student_id,course_id),FOREIGN KEY(course_id,exam_type) REFERENCES exams(course_id,exam_type));
+CREATE TABLE IF NOT EXISTS pending(id TEXT PRIMARY KEY,actor TEXT REFERENCES users(id),tool TEXT NOT NULL,args TEXT NOT NULL,created REAL NOT NULL,used INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,actor TEXT,tool TEXT,args TEXT,created REAL);

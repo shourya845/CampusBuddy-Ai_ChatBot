@@ -1,0 +1,7 @@
+streamlit==1.65.0
+groq==0.37.1
+python-dotenv==1.2.4
+tzdata>=2025.2
+pytest==9.1.1
+langchain==1.4.6
+langchain-groq==1.1.3
