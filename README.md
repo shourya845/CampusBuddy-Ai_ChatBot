@@ -6,6 +6,28 @@
 
 A Streamlit chat app for teachers to mark attendance and enter marks, and for students to check their own attendance and academic progress. It uses Python, SQLite, LangChain and Groq's `openai/gpt-oss-20b` model.
 
+## Screenshots
+
+### Sign in
+
+![Sign in](docs/screenshots/sign-in.png)
+
+### Student dashboard
+
+![Student dashboard](docs/screenshots/student-dashboard.png)
+
+### CampusBuddy assistant
+
+![CampusBuddy assistant](docs/screenshots/assistant.png)
+
+### My records
+
+![My records](docs/screenshots/my-records.png)
+
+### Attendance & marks
+
+![Attendance & marks](docs/screenshots/attendance-and-marks.png)
+
 ## Setup
 
 Python 3.10 or later is required. On Windows, open a terminal in this folder:
@@ -79,7 +101,7 @@ At 75%, the required consecutive classes are `max(0, 3 * held - 4 * present)`. T
 - `database/schema.sql` and `database/seed.py` define and populate the database.
 - `tests/` contains business-rule, agent, HTTP integration and UI tests.
 
-Select **Groq API** for the live agent. **Offline demo** is a labeled backup that routes common prompts to the same real database tools; it does not call an LLM. The Structured tools tab also works without an API key.
+Select **Groq API** for the live agent. **Offline demo** is a labeled backup that routes common prompts to the same real database tools; it does not call an LLM. The Attendance & marks page also works without an API key.
 
 ## Test and demonstrate
 
