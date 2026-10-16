@@ -17,14 +17,44 @@ from .tool_registry import safe_execute
 
 
 def render_login():
-    st.info(INTRO)
-    with st.form("login"):
-        user_id = st.text_input("User ID", placeholder="T001 or S001").strip().upper()
-        password_text = st.text_input("Password", type="password")
-        submitted = st.form_submit_button("Sign in", type="primary")
-    st.caption(
-        "Hackathon demo: T001 teaches DBMS + Operating Systems. S001 is Aarav. Password for demo accounts: Campus@123. Teachers T001–T025; students S001–S200."
-    )
+    st.html("""
+    <style>
+    [data-testid="stAppViewContainer"] {background: #e4f5f8;}
+    [data-testid="stHeader"] {background: transparent;}
+    .st-key-login_shell {max-width: 420px; margin: 5vh auto 2rem; padding: 32px 28px;
+        background: rgba(255,255,255,.88); border: 1px solid #bee0e7;
+        border-radius: 28px; box-shadow: 0 12px 36px #488a9c20, 0 3px 5px #488a9c12;}
+    .st-key-login_shell h1 {text-align: center; font-size: 1.6rem; letter-spacing: -.04em;}
+    .st-key-login_shell [data-testid="stForm"] {border: 0; padding: 0;}
+    .st-key-login_shell [data-testid="stFormSubmitButton"] button {
+        background: #27272e; color: white; border: 0; border-radius: 12px; min-height: 44px;}
+    .st-key-login_shell [data-testid="stFormSubmitButton"] button:hover {background: #404049;}
+    .login-icon {width: 54px; height: 54px; margin: 0 auto 18px; display: grid;
+        place-items: center; background: #effbfd; border-radius: 17px;
+        box-shadow: 0 5px 12px #53879820; font-size: 26px; color: #34464c;}
+    .login-subtitle {text-align: center; color: #68767e; line-height: 1.6; margin-bottom: 20px;}
+    .login-footer {text-align: center; color: #68767e; font-size: .8rem; margin-top: 12px;}
+    @media (max-width: 600px) {.st-key-login_shell {margin-top: 1rem; padding: 24px 20px;}}
+    </style>
+    """)
+    with st.container(key="login_shell"):
+        st.html('<div class="login-icon" aria-hidden="true">↪</div>')
+        st.title("Welcome to CampusBuddy")
+        st.html('<p class="login-subtitle">Your attendance. Your progress. One place.<br>Sign in to your campus account.</p>')
+        render_login_form()
+        with st.expander("Try a demo account"):
+            st.write("Teacher: **T001** · Student: **S001**")
+            st.write("Password: **Campus@123**")
+            st.caption("Teachers T001–T025 · Students S001–S200")
+        st.html('<p class="login-footer">T5 · Attendance & Academic Progress Assistant</p>')
+    st.stop()
+
+
+def render_login_form():
+    with st.form("login", border=False):
+        user_id = st.text_input("User ID", placeholder="Enter your student or teacher ID").strip().upper()
+        password_text = st.text_input("Password", type="password", placeholder="Enter your password")
+        submitted = st.form_submit_button("Sign in", type="primary", width="stretch")
     if submitted:
         attempts = st.session_state.setdefault("attempts", [])
         now = time.time()
@@ -44,7 +74,7 @@ def render_login():
                 st.rerun()
             else:
                 st.error("Incorrect user ID or password.")
-    st.stop()
+
 
 
 def render_records(actor, directory_data):
@@ -88,6 +118,8 @@ def render_records(actor, directory_data):
 
 
 def render_structured_tools(actor, state, directory_data):
+    st.subheader("Attendance & marks")
+    st.caption("Choose an action below. Changes are saved only after your confirmation.")
     course = st.selectbox(
         "Course", directory_data["courses"], format_func=lambda c: c["name"]
     )
@@ -246,6 +278,9 @@ def render_sidebar(actor, state, directory_data):
     api_key = ""
     base_url = None
     with st.sidebar:
+        st.markdown("### CampusBuddy")
+        st.caption("YOUR CAMPUS COMPANION")
+        st.divider()
         st.subheader(actor["name"])
         st.caption(f"{actor['id']} · {actor['role'].title()}")
         selected_mode = st.radio("Assistant mode", list(modes), index=default_index)

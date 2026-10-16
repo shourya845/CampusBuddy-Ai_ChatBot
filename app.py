@@ -20,8 +20,6 @@ except Exception:
         "Database could not be opened. Check CAMPUSBUDDY_DB and folder permissions."
     )
     st.stop()
-st.title("🎓 CampusBuddy")
-st.caption("T5 · Attendance & Academic Progress Assistant")
 if "actor" not in st.session_state:
     render_login()
     st.stop()
@@ -32,9 +30,11 @@ try:
 except Exception:
     st.error("Your course records are temporarily unavailable. Please retry.")
     st.stop()
+st.title(f"Welcome, {actor['name'].split()[0]}")
+st.caption("CampusBuddy · Your attendance and academic progress, together.")
 provider, api_key, base_url = render_sidebar(actor, state, directory_data)
 chat_tab, records_tab, tools_tab = st.tabs(
-    ["Assistant", "My records", "Structured tools"]
+    ["Assistant", "My records", "Attendance & marks"]
 )
 with chat_tab:
     render_chat(actor, state, provider, api_key, base_url)
