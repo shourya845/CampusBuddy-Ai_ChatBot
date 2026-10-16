@@ -77,6 +77,103 @@ def render_login_form():
 
 
 
+def render_dashboard(actor, directory_data):
+    st.subheader("Overview")
+    st.caption("Your current academic records · Attendance target: 75%")
+    courses = directory_data["courses"]
+    rows = []
+    if actor["role"] == "student":
+        result = safe_execute(actor, "get_report_card", {})
+        if "error" in result:
+            st.error(result["error"])
+            return
+        records = result["courses"]
+        held = sum(r["held"] for r in records)
+        present = sum(r["present"] for r in records)
+        shortage = sum(r["percentage"] is not None and r["percentage"] < 75 for r in records)
+        metrics = [
+            ("My courses", len(records)),
+            ("Attendance", f"{100 * present / held:.1f}%" if held else "No classes"),
+            ("Courses below 75%", shortage),
+            ("Exam results", sum(len(r["exams"]) for r in records)),
+        ]
+        for record in records:
+            percent = record["percentage"]
+            rows.append({
+                "Course": record["course"],
+                "Attendance %": percent,
+                "Marks %": record["weighted_percentage"],
+                "Grade": record["grade"],
+                "Status": "No classes" if percent is None else "On track" if percent >= 75 else "Needs attention",
+            })
+        chart_rows = [{"Course": r["course"], "Attendance %": r["percentage"]} for r in records if r["percentage"] is not None]
+        chart_title = "Attendance by course"
+        chart_value = "Attendance %"
+        chart_caption = "Aim for at least 75% in every course. Overall attendance is weighted by classes held."
+    else:
+        affected = set()
+        for course in courses:
+            result = safe_execute(actor, "list_shortage_students", {"course_id": course["course_id"]})
+            if "error" in result:
+                st.error(result["error"])
+                return
+            affected.update(r["student_id"] for r in result["below_75"])
+            rows.append({
+                "Course": course["name"],
+                "Course code": course["course_code"],
+                "Planned classes": course["total_planned_classes"],
+                "Below 75%": result["count"],
+                "Status": "Needs attention" if result["count"] else "On track",
+            })
+        metrics = [
+            ("My courses", len(courses)),
+            ("Enrolled students", len(directory_data["students"])),
+            ("Students below 75%", len(affected)),
+            ("Courses with shortages", sum(r["Below 75%"] > 0 for r in rows)),
+        ]
+        chart_rows = [{"Course": r["Course"], "Students": r["Below 75%"]} for r in rows]
+        chart_title = "Attendance shortages"
+        chart_value = "Students"
+        chart_caption = "Students below 75% in each assigned course. A student may appear in more than one course."
+    for column, (label, value) in zip(st.columns(4), metrics):
+        column.metric(label, value, border=True)
+    st.space("small")
+    left, right = st.columns([1.2, 1], gap="medium")
+    with left.container(border=True):
+        st.subheader("Course summary")
+        if rows:
+            st.dataframe(rows, hide_index=True, width="stretch", column_config={
+                "Attendance %": st.column_config.NumberColumn(format="%.1f%%"),
+                "Marks %": st.column_config.NumberColumn(format="%.1f%%"),
+            })
+        else:
+            st.info("No courses are assigned to your account yet.")
+        st.caption("Only courses linked to your signed-in account are shown.")
+    with right.container(border=True):
+        st.subheader(chart_title)
+        if chart_rows:
+            course_labels = {c["name"]: c["course_code"] for c in courses}
+            chart_rows = [{**r, "Label": course_labels.get(r["Course"], r["Course"])} for r in chart_rows]
+            bars = {
+                "mark": {"type": "bar", "color": "#FF9D42", "cornerRadiusTopLeft": 5, "cornerRadiusTopRight": 5},
+                "encoding": {
+                    "x": {"field": "Label", "type": "nominal", "title": None, "axis": {"labelAngle": 0}},
+                    "y": {"field": chart_value, "type": "quantitative", "scale": {"domain": [0, 100]} if actor["role"] == "student" else {"zero": True}},
+                    "tooltip": [{"field": "Course"}, {"field": chart_value, "type": "quantitative"}],
+                },
+            }
+            layers = [bars]
+            if actor["role"] == "student":
+                layers.append({"mark": {"type": "rule", "color": "#69747B", "strokeDash": [4, 4]}, "encoding": {"y": {"datum": 75}}})
+            st.vega_lite_chart({"data": {"values": chart_rows}, "layer": layers, "height": 260}, width="stretch")
+            st.caption(chart_caption)
+        else:
+            st.info("There are no attendance records to chart yet.")
+    with st.container(border=True):
+        st.markdown("**Need a hand? Ask CampusBuddy.**")
+        st.caption("Use Assistant to check attendance or marks. Teachers can prepare updates in Attendance & marks and review them before saving.")
+
+
 def render_records(actor, directory_data):
     if actor["role"] == "student":
         result = safe_execute(actor, "get_report_card", {})
@@ -279,23 +376,26 @@ def render_sidebar(actor, state, directory_data):
     base_url = None
     with st.sidebar:
         st.markdown("### CampusBuddy")
-        st.caption("YOUR CAMPUS COMPANION")
+        st.caption("Attendance & academic progress")
+        st.divider()
+        st.radio("Navigation", ["Dashboard", "Assistant", "My records", "Attendance & marks"], key="navigation", label_visibility="collapsed")
         st.divider()
         st.subheader(actor["name"])
         st.caption(f"{actor['id']} · {actor['role'].title()}")
-        selected_mode = st.radio("Assistant mode", list(modes), index=default_index)
-        provider = modes[selected_mode]
-        if provider == "groq":
-            api_key = st.text_input(
-                "Groq API key (optional if in .env)",
-                type="password",
-                value=os.getenv("GROQ_API_KEY", ""),
-            )
-            st.caption(GROQ_MODEL)
-            if not api_key:
-                st.warning("Enter your Groq key or choose Offline demo.")
-        else:
-            st.caption("Deterministic demo; no LLM calls")
+        with st.expander("Assistant settings"):
+            selected_mode = st.radio("Assistant mode", list(modes), index=default_index)
+            provider = modes[selected_mode]
+            if provider == "groq":
+                api_key = st.text_input(
+                    "Groq API key (optional if in .env)",
+                    type="password",
+                    value=os.getenv("GROQ_API_KEY", ""),
+                )
+                st.caption(GROQ_MODEL)
+                if not api_key:
+                    st.warning("Enter your Groq key or choose Offline demo.")
+            else:
+                st.caption("Deterministic demo; no LLM calls")
         st.write("Your courses")
         for course in directory_data["courses"]:
             st.caption(f"{course['course_id']} · {course['name']}")
